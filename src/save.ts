@@ -33,7 +33,13 @@ async function run(): Promise<void> {
             return;
         }
 
-        if (utils.isExactKeyMatch(primaryKey, state)) {
+        // https://github.com/actions/toolkit/issues/844
+        let alwaysSave = false;
+        if (core.getInput(Inputs.AlwaysSave)) {
+            alwaysSave = core.getBooleanInput(Inputs.AlwaysSave);
+        }
+
+        if (utils.isExactKeyMatch(primaryKey, state) && !alwaysSave) {
             core.info(
                 `Cache hit occurred on the primary key ${primaryKey}, not saving cache.`
             );

@@ -15,6 +15,12 @@ beforeAll(() => {
         return jest.requireActual("@actions/core").getInput(name, options);
     });
 
+    jest.spyOn(core, "getBooleanInput").mockImplementation((name, options) => {
+        return jest
+            .requireActual("@actions/core")
+            .getBooleanInput(name, options);
+    });
+
     jest.spyOn(actionUtils, "getCacheState").mockImplementation(() => {
         return jest.requireActual("../src/utils/actionUtils").getCacheState();
     });
@@ -190,6 +196,38 @@ test("save with exact match returns early", async () => {
     expect(saveCacheMock).toHaveBeenCalledTimes(0);
     expect(infoMock).toHaveBeenCalledWith(
         `Cache hit occurred on the primary key ${primaryKey}, not saving cache.`
+    );
+    expect(failedMock).toHaveBeenCalledTimes(0);
+});
+
+test("save with exact match and always-save, still saves", async () => {
+    const infoMock = jest.spyOn(core, "info");
+    const failedMock = jest.spyOn(core, "setFailed");
+
+    const primaryKey = "Linux-node-bb828da54c148048dd17899ba9fda624811cfb43";
+    const savedCacheKey = primaryKey;
+
+    jest.spyOn(core, "getState")
+        // Cache Entry State
+        .mockImplementationOnce(() => {
+            return savedCacheKey;
+        })
+        // Cache Key State
+        .mockImplementationOnce(() => {
+            return primaryKey;
+        });
+
+    const saveCacheMock = jest.spyOn(cache, "saveCache");
+
+    const inputPath = "node_modules";
+    testUtils.setInput(Inputs.AlwaysSave, "true");
+    testUtils.setInput(Inputs.Path, inputPath);
+
+    await run();
+
+    expect(saveCacheMock).toHaveBeenCalledTimes(1);
+    expect(infoMock).toHaveBeenCalledWith(
+        `Cache saved with key: ${primaryKey}`
     );
     expect(failedMock).toHaveBeenCalledTimes(0);
 });
